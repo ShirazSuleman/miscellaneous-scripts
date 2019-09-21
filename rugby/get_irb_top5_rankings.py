@@ -18,12 +18,12 @@ def all_mondays(year):
 def create_csv_file():
     with open(CSV_FILE_NAME, mode='w') as irb_rankings_file:
         writer = csv.writer(irb_rankings_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        writer.writerow(['Date', 'Team', 'Rank', 'Points'])
+        writer.writerow(['Date', 'Team', 'Position', 'Points', 'Previous Position', 'Previous Points'])
 
-def add_csv_row(date, rank, team, points):
+def add_csv_row(date, team, pos, points, prev_pos, prev_points):
     with open(CSV_FILE_NAME, mode='a') as irb_rankings_file:
         writer = csv.writer(irb_rankings_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        writer.writerow([date, team, rank, points])
+        writer.writerow([date, team, pos, points, prev_pos, prev_points])
 
 async def fetch(session, url):
     async with session.get(url) as response:
@@ -36,14 +36,18 @@ async def process_date(session, date):
     response = await fetch(session, URL.format(str(date)))
     entries = json.loads(response)['entries']
 
-    for i in range(5):
+    for i in range(10):
         entry = entries[i]
-        add_csv_row(date, i + 1, entry['team']['name'], round(entry['pts'], 2))
+        name = entry['team']['name']
+        pos = entry['pos']
+        points = round(entry['pts'], 2)
+        prev_pos = entry['previousPos']
+        prev_points = round(entry['previousPts'], 2)
+        add_csv_row(date, name, pos, points, prev_pos, prev_points)
 
 async def main():
     create_csv_file()
-    years = [2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019]
-    for year in years:
+    for year in range(2003, 2020):
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as session:
             await asyncio.gather(*(process_date(session, d) for d in all_mondays(year)))
 
