@@ -69,9 +69,9 @@ async def main():
 
     players = await get_players(url)
 
-    for player in players:
-        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as session:
-            await asyncio.gather(*(process_player(session, p) for p in players))
+    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as session:
+        await asyncio.gather(*(process_player(session, p) for p in players))
+
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
