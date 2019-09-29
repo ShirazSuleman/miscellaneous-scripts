@@ -2,8 +2,7 @@ import re
 import csv
 import aiohttp
 import asyncio
-import requests
-from bs4 import BeautifulSoup
+import bs4
 import os
 
 CSV_FILE_NAME = 'rwc_players.csv'
@@ -11,7 +10,7 @@ CSV_FILE_NAME = 'rwc_players.csv'
 async def get_soup(session, url):
     async with session.get(url) as response:
         html = await response.text()
-        return BeautifulSoup(html, 'lxml')
+        return bs4.BeautifulSoup(html, 'lxml')
 
 async def get_players(url):
     players = []
@@ -42,12 +41,17 @@ async def get_player_location(session, player_url):
     location_elements = table.find('th', text = re.compile('place.*birth', re.IGNORECASE)).next_sibling
 
     for element in location_elements:
-        try:
-            player_location = player_location + (element.get_text() + ', ')
-        except Exception as e:
-            print(e)
+        if type(element) is bs4.NavigableString:
+            value = element.rstrip().lstrip()
+        else:
+            value = element.get_text().rstrip().lstrip()
 
-    return player_location[0:-2]
+        if value != '[1]' and value != '[2]':
+            if value != ',':
+                value = value + ' '
+            player_location = player_location + (value)
+
+    return player_location.rstrip()
 
 def new_csv_file():
     with open(CSV_FILE_NAME, mode='w', encoding='utf-8', newline='') as rwc_players_file:
@@ -61,7 +65,7 @@ def add_csv_row(player):
 
 async def process_player(session, player):
     try:
-        player['born'] = await get_player_location(session, player['url'])
+         player['born'] = await get_player_location(session, player['url'])
     except Exception as e:
         print(e)
         player['born'] = ''
